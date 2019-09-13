@@ -24,6 +24,15 @@ class AvroObjectTests(unittest.TestCase):
                         'Age': '42'
                         }
 
+        self.serial_bin = b'Obj\x01\x04\x14avro.codec\x08null\x16avro.schema\xd6\x03{"type": "record"'
+        b', "name": "User", "namespace": "avroobject.test", "fields": [{"type": "strin'
+        b'g", "name": "UserName"}, {"type": ["int", "null"], "name": "Age", "default":'
+        b' "1"}, {"type": "boolean", "name": "Active", "default": "False"}]}\x00\xe0'
+        b'\xa4\x92D\xe5\x84y\x89\x0e0z\xce\xc9\xa1\x18\xe5\x02\x1a\x12Guionardo\x00'
+        b'T\x01\xe0\xa4\x92D\xe5\x84y\x89\x0e0z\xce\xc9\xa1\x18\xe5'
+
+        self.serial_str = '{"UserName":"Guionardo","Age":{"int":42},"Active":true}'
+
     def test_schema(self):
 
         o = {
@@ -36,19 +45,23 @@ class AvroObjectTests(unittest.TestCase):
         pprint.pprint(o)
         self.assertTrue(True, 'ok')
 
-    def test_serialize(self):
-        o = {
-            'nome': 'teste',
-            'idade': 32,
-            'ativo': True
-        }
-
+    def test_serialize_str(self):
         ao = AvroObject(self.obj_ok, self.schema)
-        print(ao.LastError)
-        pprint(ao.ExportToJSON())
-        pprint(ao.ExportToBin())
+        serial_json = ao.ExportToJSON()
+        self.assertIsNone(ao.LastError)
+        self.assertTrue(self.serial_str == serial_json)
 
-        self.assertIsNone(ao.LastError, 'Serialize')
+    def test_serialize_bin(self):
+        ao = AvroObject(self.obj_ok, self.schema)
+        serial_bin = ao.ExportToBin()
+        self.assertIsNone(ao.LastError)
+        self.assertTrue(self.serial_bin == serial_bin)
+
+    def test_serialize(self):
+        ao = AvroObject(self.obj_ok, self.schema)
+        self.assertIsNone(ao.LastError)
+        pprint(ao.ExportToJSON())
+        pprint(ao.ExportToBin())        
 
     def test_deserialize_json(self):
         obj_json = '{"UserName":"Guionardo","Age":{"int":42},"Active":true}'
