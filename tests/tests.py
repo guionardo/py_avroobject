@@ -1,7 +1,7 @@
 import unittest
 from pprint import pprint
 
-from src import AvroObject, create_schema
+from avro_object import AvroObject, create_schema, add_fetch_method
 
 
 class AvroObjectTests(unittest.TestCase):
@@ -33,6 +33,18 @@ class AvroObjectTests(unittest.TestCase):
 
         self.serial_str = '{"UserName":"Guionardo","Age":{"int":42},"Active":true}'
 
+    def test_add_parser(self):
+        def f_ok(source: str)->tuple:
+            return True, "Valid function"
+        def f_not_ok1(source:str, extra_arg: int)->tuple:
+            return False, "Invalid function 1"
+        def f_not_ok2()->tuple:
+            return False, "Invalid function 2"
+
+        self.assertTrue(add_fetch_method(f_ok))
+        self.assertFalse(add_fetch_method(f_not_ok1))
+        self.assertFalse(add_fetch_method(f_not_ok2))
+        
     def test_schema(self):
 
         o = {
@@ -42,7 +54,7 @@ class AvroObjectTests(unittest.TestCase):
         }
 
         #s = create_schema(o, 'schema_teste')
-        pprint.pprint(o)
+        pprint(o)
         self.assertTrue(True, 'ok')
 
     def test_serialize_str(self):
@@ -64,7 +76,7 @@ class AvroObjectTests(unittest.TestCase):
         pprint(ao.ExportToBin())        
 
     def test_deserialize_json(self):
-        obj_json = '{"UserName":"Guionardo","Age":{"int":42},"Active":true}'
+        obj_json = '{"UserName":"Guionardo","Age":42,"Active":true}'
         aoj = AvroObject(obj_json)
         pprint(aoj.LastError)
         self.assertIsNone(aoj.LastError)

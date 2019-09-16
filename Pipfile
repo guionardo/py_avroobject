@@ -7,11 +7,15 @@ verify_ssl = true
 pylint = "*"
 autopep8 = "*"
 pytest = "*"
+setuptools = "*"
+wheel = "*"
+twine = "*"
 
 [packages]
 avro = "*"
 avro-json-serializer = "*"
 requests = "*"
+fastavro = "*"
 
 [requires]
 python_version = "3.7"

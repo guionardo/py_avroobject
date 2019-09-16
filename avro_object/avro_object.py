@@ -29,45 +29,62 @@ class AvroObject:
 
     """
 
-    def __init__(self, data=None, schema=None):
+    def __init__(self, data, schema=None):
+        """
+        :param data: dict, list of dicts, JSON str, file
+        """
         self.namespace = None       # Schema Namespace
         self.original_data = data   # Original data from initialization
         self.object_data = None     # Deserialized data
+        self.bin_data = None        # AVRO binary serializaded data
+        self.json_data = None       # JSON string serializaded data
+        self.schema = parse_schema(schema)  # AVRO schema
+
         self.data = None
         self.type = None
-        self.name = None
-        self.origin = None
+        self.name = None        
         self.ok = False
         self.realdata = data
-        self.bin_data = None
-        self.json_data = None
         self._last_error = None
 
         if isinstance(data, str):
-            # Verifica se é um JSON
+            # JSON string
             dt = fetch_json(data)
-            if dt[0]:
-                try:
-                    data = json.loads(dt[1])
-                    self.object_data = data
-                except Exception as e:
-                    self._last_error = f"Erro em AvroObject({dt[0]}):{e}"
+            if not dt[0]:
+                self._last_error = dt[1]
+                return
+
+            try:
+                self.object_data = json.loads(dt[1])
+                if self.schema is None:
+                    self.ok = True
+                else:
+                    self._parsestr(self.data)
+
+            except Exception as e:
+                self._last_error = f"AvroObject error({dt[0]}):{e}"
+
         elif is_avro_binary(data):
+            # AVRO binary
             if self._parsebytes(data)[0]:
                 self.namespace = self.schema.namespace
-                self.ExportToJSON()
-                return
+                self.ok = self.ExportToJSON() is not None
+
             else:
                 data = None
 
-        self.schema = parse_schema(schema)
+        elif isinstance(data, dict) or isinstance(data, list):
+            # Dict or List
+            self.object_data = data
+            self.ok = True
+            if self.schema is not None:
+                self.ok = self.ExportToBin() is not None
+
+        else:
+            self._last_error = 'Invalid data'
+
         if self.schema:
             self.namespace = self.schema.namespace
-
-        if data is not None:
-            self.realdata = data
-            self.ExportToBin()
-            self.ExportToJSON()
 
     @property
     def LastError(self):
@@ -83,21 +100,8 @@ class AvroObject:
         return {
             "namespace": self.namespace,
             "type": self.type,
-            "name": self.name,
-            "origin": self.origin
+            "name": self.name            
         }
-
-    def Parse(self, data, schema=None) -> tuple:
-        """
-        Trata informações e gera o objeto
-        A tupla de retorno tem dois valores (Sucesso: bool, Mensagem: str)
-        """
-        if type(data) is bytes:
-            return self._parsebytes(data)
-        elif type(data) is str:
-            return self._parsestr(data, schema)
-        self.ok = False
-        return False, 'Paramêtro inválido'
 
     def ExportToJSON(self) -> str:
         '''
@@ -123,27 +127,6 @@ class AvroObject:
                 self._last_error = f'ExportToJSON:{e}'
 
         return self.json_data
-
-    def ExportToText_(self, data, schema=None) -> tuple:
-        """
-        Exporta objeto data utilizando o schema informado em formato texto (JSON)
-        """
-        if schema is not None:
-            if self._parseschema(schema):
-                schema = self.schema
-        else:
-            schema = self.schema
-
-        try:
-            if schema is None:
-                self.json_data = json.dumps(data)
-            else:
-                serializer = avro_json_serializer.AvroJsonSerializer(schema)
-                self.json_data = serializer.to_json(data)
-
-            return True, self.json_data, self.getSchemaInfos()
-        except Exception as e:
-            return False, str(e), self.getSchemaInfos()
 
     def ExportToBin(self) -> bytes:
         '''
@@ -180,46 +163,6 @@ class AvroObject:
             self._last_error = f'ExportToBin:{e}'
             return None
 
-    def ExportToBin_(self, data=None, schema=None) -> tuple:
-        """
-        Exporta objeto data utilizando o schema informado em formato binário (bytes)
-        """
-        if data is None:
-            if self.realdata is None:
-                return False, "Empty data"
-            data = self.realdata
-
-        if schema is not None:
-            pschema = self._parseschema(schema)
-            if pschema[0]:
-                schema = self.schema
-            else:
-                return pschema
-
-        else:
-            schema = self.schema
-
-        if not type(schema) is avro.schema.RecordSchema:
-            schema = None
-        try:
-            with tempfile.SpooledTemporaryFile(suffix='.avro') as tmp:
-                writer = avro.datafile.DataFileWriter(
-                    tmp, avro.io.DatumWriter(), schema)
-                if data is not list:
-                    writer.append(data)
-                else:
-                    for d in data:
-                        writer.append(d)
-                writer.flush()
-                tmp.seek(0)
-                self.bin_data = tmp.read()
-                self.ok = True
-                writer.close()
-                tmp.close()
-            return True, self.bin_data, self.getSchemaInfos()
-        except Exception as e:
-            return False, str(e), self.getSchemaInfos()
-
     def _parsebytes(self, data) -> tuple:
         """Trata informações a partir de dados bytes"""
         try:
@@ -235,34 +178,33 @@ class AvroObject:
 
             reader.close()
             self.schema = avro.schema.Parse(cschema)
-            self.object_data = obj_data
-            self.origin = ('binary', None)
+            self.object_data = obj_data            
             self.ok = True
             return True, 'OK'
         except Exception as e:
             self.ok = False
             return False, str(e)
 
-    def _parsestr(self, data, schema) -> tuple:
-        '''Trata informações a partir de uma string json'''
-        f = fetch_json(data)
-        if not f[0]:  # Erro no fetch da informação
-            return False, f[1]
+    def _parsestr(self, data) -> tuple:
+        """Parses JSON string using schema
 
-        data = f[1]
+        :param data: str JSON
+        :return: tuple (bool Success, str Message) 
+        """
+        success, info = fetch_json(data)
+        if not success:  # Erro no fetch da informação
+            return False, info
+
+        data = info
         try:
-            if schema is not None:
-                self._parseschema(schema)
-
-            if type(self.schema) is avro.schema.RecordSchema:
+            if isinstance(self.schema, avro.schema.RecordSchema):
                 deserializer = avro_json_serializer.AvroJsonDeserializer(
                     self.schema)
                 obj = deserializer.from_json(data)
             else:
                 obj = json.loads(data)
 
-            self.data = obj
-            self.origin = ('text', f[2])
+            self.data = obj            
             self.ok = True
             return True, 'OK'
         except Exception as e:
@@ -288,11 +230,9 @@ class AvroObject:
                     data = f.read()
                     f.close()
             if binary:
-                ret = self._parsebytes(data)
-                self.origin = ('file/binary:', filename)
+                ret = self._parsebytes(data)                
             else:
-                ret = self._parsestr(data, schema)
-                self.origin = ('file/text:', filename)
+                ret = self._parsestr(data)                
             return ret
 
         except Exception as e:
@@ -324,10 +264,3 @@ class AvroObject:
             return True, 'OK'
 
         return False, 'NO SCHEMA'
-
-    @staticmethod
-    def isAvroBinary(bin_data: bytes) -> bool:
-        """
-        Identifica se uma sequencia de bytes é um binário AVRO válido
-        """
-        return is_avro_binary(bin_data)
