@@ -6,14 +6,11 @@ verify_ssl = true
 [dev-packages]
 pylint = "*"
 autopep8 = "*"
-pytest = "*"
 setuptools = "*"
 wheel = "*"
 twine = "*"
 
 [packages]
-avro = "*"
-avro-json-serializer = "*"
 requests = "*"
 fastavro = "*"
 

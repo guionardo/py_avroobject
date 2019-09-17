@@ -1,16 +1,17 @@
 import io
 import json
+import numbers
 import os
 import re
 import tempfile
+from inspect import signature
+from pprint import pprint
 
-import avro
-import avro.schema
-import avro.datafile
-import avro.io
-import avro_json_serializer
+import requests
+from fastavro import (is_avro, json_writer, parse_schema, reader, validate,
+                      writer)
 
-from .avro_tools import fetch_json, is_avro_binary, parse_schema
+_json_fetch_modes = []
 
 
 class AvroObject:
@@ -19,248 +20,293 @@ class AvroObject:
 
     ...
 
-
-    Attributes
+    Properties
     ----------
-    schema : avro.schema.Recordschema
-    namespace : str
+    data: 
+    origin:
+    ok:
+    last_error:
 
-    data : object
-
+    Methods
+    -------
+    to_avro()
+    to_json()
     """
 
     def __init__(self, data, schema=None):
         """
-        :param data: dict, list of dicts, JSON str, file
+        :param data: dict, list of dicts, JSON str, file, bytes
+        :param schema: dict
         """
-        self.namespace = None       # Schema Namespace
-        self.original_data = data   # Original data from initialization
-        self.object_data = None     # Deserialized data
-        self.bin_data = None        # AVRO binary serializaded data
-        self.json_data = None       # JSON string serializaded data
-        self.schema = parse_schema(schema)  # AVRO schema
-
-        self.data = None
-        self.type = None
-        self.name = None        
-        self.ok = False
-        self.realdata = data
         self._last_error = None
+        self._object_data = None
+        self._json_data = None
+        self._avro_data = None
+        self._origin = None
+
+        self._ok = False
+        self._schema = None if schema is None else parse_schema(schema)
+
+        if isinstance(data, bytes):
+            b_avro = False
+            try:
+                bdata = io.BytesIO(data)
+                if is_avro(bdata):
+                    self._origin = 'binary_avro'
+                    bdata.seek(0)
+                    b_avro = True
+                    avro_reader = reader(bdata)
+                    self._schema = avro_reader.schema
+                    obj_data = []
+                    for record in avro_reader:
+                        obj_data.append(record)
+                    self._object_data = None if len(obj_data) == 0 else obj_data[0] if len(
+                        obj_data) == 1 else obj_data
+                    self._ok = True
+                else:
+                    self._origin = 'binary_string'
+                    data = data.decode('utf-8')
+
+            except Exception as e:
+                self._last_error = (
+                    'Avro binary' if b_avro else 'String decoding')+f' error: {e}'
 
         if isinstance(data, str):
-            # JSON string
-            dt = fetch_json(data)
-            if not dt[0]:
-                self._last_error = dt[1]
+            success, json_data, origin = fetch_json(data)
+            if not self._origin:
+                self._origin = origin
+            if not success:
+                self._last_error = json_data
                 return
 
             try:
-                self.object_data = json.loads(dt[1])
-                if self.schema is None:
-                    self.ok = True
-                else:
-                    self._parsestr(self.data)
-
+                self._object_data = json.loads(json_data)
+                self._json_data = json_data
+                if self._schema is None:
+                    self._ok = True
             except Exception as e:
-                self._last_error = f"AvroObject error({dt[0]}):{e}"
-
-        elif is_avro_binary(data):
-            # AVRO binary
-            if self._parsebytes(data)[0]:
-                self.namespace = self.schema.namespace
-                self.ok = self.ExportToJSON() is not None
-
-            else:
-                data = None
+                self._last_error = f'JSON parsing error: {e}'
 
         elif isinstance(data, dict) or isinstance(data, list):
-            # Dict or List
-            self.object_data = data
-            self.ok = True
-            if self.schema is not None:
-                self.ok = self.ExportToBin() is not None
+            self._origin = type(data).__name__
+            self._object_data = data
+            if self._schema is None:
+                self._ok = True
 
-        else:
-            self._last_error = 'Invalid data'
-
-        if self.schema:
-            self.namespace = self.schema.namespace
-
-    @property
-    def LastError(self):
-        return self._last_error
+        if self._object_data is not None and not self._ok and self._schema is not None:
+            try:
+                validate(self._object_data, self._schema)
+                self._ok = True
+            except Exception as e:
+                self._last_error = f'Schema error: {e}'
 
     def __str__(self):
-        return f"AvroObject({self.name}:{'OK' if self.ok else 'ERROR'}) = {self.realdata}"
+        return f'{self._origin}:{self.to_json()}'
 
-    def getSchemaInfos(self):
-        """
-        Retorna dict com informações sobre o último schema utilizado
-        """
-        return {
-            "namespace": self.namespace,
-            "type": self.type,
-            "name": self.name            
-        }
+    def to_json(self):
+        if not self._ok or self._json_data:
+            return self._json_data
 
-    def ExportToJSON(self) -> str:
-        '''
-        Exports the object to JSON string
+        if self._schema is None:
+            self._json_data = json.dumps(self._object_data)
+        else:
+            out = io.StringIO()
+            json_writer(out, self._schema, self._object_data if isinstance(
+                self._object_data, list) else [self._object_data])
+            out.flush()
+            out.seek(0)
+            self._json_data = out.read()
 
-        :return: str or None
-        '''
-        self._last_error = None
-        if self.json_data is None:
-            try:
-                if self.object_data is None:
-                    self._last_error = 'ExportToJSON: data is None'
-                    return None
+        return self._json_data
 
-                if isinstance(self.schema, avro.schema.RecordSchema):
-                    serializer = avro_json_serializer.AvroJsonSerializer(
-                        self.schema)
-                    self.json_data = serializer.to_json(self.object_data)
-                else:
-                    self.json_data = json.dumps(self.object_data)
+    def to_avro(self):
+        if not self._ok or self._avro_data or not self._schema:
+            return self._avro_data
 
-            except Exception as e:
-                self._last_error = f'ExportToJSON:{e}'
+        out = io.BytesIO()
+        writer(out, self._schema, self._object_data if isinstance(
+            self._object_data, list) else [self._object_data])
+        out.flush()
+        out.seek(0)
+        self._avro_data = out.read()
+        return self._avro_data
 
-        return self.json_data
+    @property
+    def data(self):
+        return self._object_data
 
-    def ExportToBin(self) -> bytes:
-        '''
-        Exports the object to binary AVRO format
+    @property
+    def origin(self):
+        return self._origin
 
-        :return: bytes or None
-        '''
-        if self.realdata is None:
-            self._last_error = 'ExportToBin: data is None'
-            return None
-        if not isinstance(self.schema, avro.schema.RecordSchema):
-            self._last_error = 'ExportToBin: schema undefined'
-            return None
+    @property
+    def ok(self):
+        return self._ok
 
-        self._last_error = None
+    @property
+    def last_error(self):
+        return self._last_error
 
-        if self.bin_data is not None:
-            return self.bin_data
 
+def create_schema(data: dict, name: str, namespace: str = 'namespace.test', doc: str = None):
+    '''
+    Create schema from object
+    '''
+    if not isinstance(data, dict):
+        return None
+    schema = {
+        'doc': 'A weather reading.',
+        'name': 'Weather',
+        'namespace': 'test',
+        'type': 'record',
+        'fields': [
+            {'name': 'station', 'type': 'string'},
+            {'name': 'time', 'type': 'long'},
+            {'name': 'temp', 'type': 'int'},
+        ],
+    }
+
+    o_type = None
+    if isinstance(data, dict):
+        o_type = 'record'
+    elif isinstance(data, list):
+        o_type = 'array'
+    elif isinstance(data, str):
+        o_type = 'string'
+    elif isinstance(data, numbers.Integral):
+        o_type = 'int'
+    elif isinstance(data, numbers.Real):
+        o_type = 'float'
+    else:
+        return None
+    if not name:
+        return None
+    schema = {
+        'namespace': namespace,
+        'type': o_type,
+        'name': name,
+        'fields': []
+    }
+    if isinstance(doc, str) and len(doc) > 0:
+        schema['doc'] = doc
+
+    for k, v in data.items():
+        field = create_schema(data=v, name=k)
+        schema['fields'].append(field)
+
+    return schema    
+
+
+def add_fetch_method(method) -> bool:
+    try:
+        sign = signature(method)
+        if len(sign.parameters) != 1:
+            return False
+        if not (sign.return_annotation is tuple):
+            return False
+        if method not in _json_fetch_modes:
+            _json_fetch_modes.append(method)
+        return True
+    except:
+        pass
+    return False
+
+
+def reset_fetch_methods():
+    _json_fetch_modes.clear()
+    for method in [fetch_json_file, fetch_json_url]:
+        _json_fetch_modes.append(method)
+
+
+def fetch_json(source: str) -> tuple:
+    '''Load JSON string from various medium and returns as string
+
+    :param source: string JSON, file name, URL, another registered source by add_fetch_method
+    :return tuple: (bool Success, str JSON or error message, origin)
+    '''
+    try:
+        for method in _json_fetch_modes:
+            success, message = method(source)
+            if success:
+                break
+        # Try to parse JSON str
+        json.loads(message if success else source)
+        return True, source, "string"
+    except Exception as e:
+        return False, str(e), None
+
+
+def fetch_json_file(source: str) -> tuple:
+    """Try to parse json from file
+
+    :param source: str with file name
+    :return: (bool Success, str JSON or Error)
+    """
+    if os.path.isfile(source):
         try:
-            with tempfile.SpooledTemporaryFile(suffix='.avro') as tmp:
-                writer = avro.datafile.DataFileWriter(
-                    tmp, avro.io.DatumWriter(), self.schema)
-                for d in self.realdata if self.realdata is list else [self.realdata]:
-                    writer.append(d)
-                writer.flush()
-                tmp.seek(0)
-                self.bin_data = tmp.read()
-                self.ok = True
-                writer.close()
-                tmp.close()
-                return self.bin_data
+            with open(source, 'r') as f:
+                content = f.read()
+            return True, content
         except Exception as e:
-            self._last_error = f'ExportToBin:{e}'
-            return None
-
-    def _parsebytes(self, data) -> tuple:
-        """Trata informações a partir de dados bytes"""
-        try:
-            bdata = io.BytesIO(data)
-            reader = avro.datafile.DataFileReader(bdata, avro.io.DatumReader())
-            cschema = reader.GetMeta('avro.schema')
-            obj_data = []
-            for datum in reader:
-                obj_data.append(datum)
-
-            if len(obj_data) == 1:
-                obj_data = obj_data[0]
-
-            reader.close()
-            self.schema = avro.schema.Parse(cschema)
-            self.object_data = obj_data            
-            self.ok = True
-            return True, 'OK'
-        except Exception as e:
-            self.ok = False
             return False, str(e)
+    else:
+        return False, f"File not found: {source}"
 
-    def _parsestr(self, data) -> tuple:
-        """Parses JSON string using schema
 
-        :param data: str JSON
-        :return: tuple (bool Success, str Message) 
-        """
-        success, info = fetch_json(data)
-        if not success:  # Erro no fetch da informação
-            return False, info
+def fetch_json_url(source: str) -> tuple:
+    """Try to parse json from url
 
-        data = info
+    :param source: str with URL
+    :return: (bool Success, str JSON or Error)
+    """
+
+    pattern = re.compile(
+        r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+")
+    if pattern.fullmatch(source):
         try:
-            if isinstance(self.schema, avro.schema.RecordSchema):
-                deserializer = avro_json_serializer.AvroJsonDeserializer(
-                    self.schema)
-                obj = deserializer.from_json(data)
-            else:
-                obj = json.loads(data)
-
-            self.data = obj            
-            self.ok = True
-            return True, 'OK'
-        except Exception as e:
-            self.ok = False
-            return False, str(e)
-
-    def _parsefile(self, data, schema) -> tuple:
-        """Trata informações lidas a partir de um arquivo"""
-
-        # Detectar se é um arquivo binário ou um texto com JSON
-        try:
-            binary = False
-            filename = os.path.abspath(data)
-            with open(filename, 'rb') as f:
-                if f.read(3) == b'Obj':
-                    # Arquivo binário
-                    f.seek(0)
-                    data = f.read()
-                    binary = True
-                f.close()
-            if not binary:
-                with open(data, 'r') as f:
-                    data = f.read()
-                    f.close()
-            if binary:
-                ret = self._parsebytes(data)                
-            else:
-                ret = self._parsestr(data)                
-            return ret
-
+            content = requests.get(url=source).text
+            return True, content
         except Exception as e:
             return False, str(e)
+    else:
+        return False, f"Source is not an URL: {source}"
 
-    def _parseschema(self, schema) -> tuple:
-        """Carrega a informação de um schema
 
-        Argumento pode ser um objeto RecordSchema, um dict, um JSON, ou um arquivo com o conteúdo JSON, ou uma URL
-        com o conteúdo JSON """
+reset_fetch_methods()
 
-        if type(schema) is dict:
-            schema = json.dumps(schema)
+if __name__ == "__main__":
+    schema = {
+        'doc': 'A weather reading.',
+        'name': 'Weather',
+        'namespace': 'test',
+        'type': 'record',
+        'fields': [
+            {'name': 'station', 'type': 'string'},
+            {'name': 'time', 'type': 'long'},
+            {'name': 'temp', 'type': 'int'},
+        ],
+    }
 
-        if type(schema) is str:
-            try:
-                fetch = fetch_json(schema)
-                if fetch[0]:
-                    schema = fetch[1]
-                else:
-                    return False, fetch[1]
+    if True:
+        records = [
+            {u'station': u'011990-99999', u'temp': 0, u'time': 1433269388},
+            {u'station': u'011990-99999', u'temp': 22, u'time': 1433270389},
+            {u'station': u'011990-99999', u'temp': -11, u'time': 1433273379},
+            {u'station': u'012650-99999', u'temp': 111, u'time': 1433275478},
+        ]
 
-                schema = avro.schema.Parse(schema)
-            except Exception as e:
-                return False, str(e)
+    data = []
+    data.append(records[0])
+    data.append(b'Obj\x01\x04\x14avro.codec\x08null\x16avro.schema\xc0\x02{"type": "record"'
+                b', "name": "test.Weather", "fields": [{"name": "station", "type": "string"}, '
+                b'{"name": "time", "type": "long"}, {"name": "temp", "type": "int"}]}\x00'
+                b'gv\x9d4Ul\xbb\xc2\x86\x8a\x91\x93\xb0/\x80S\x02&\x18011990-99999\x98'
+                b'\xd2\xef\xd6\n\x00gv\x9d4Ul\xbb\xc2\x86\x8a\x91\x93\xb0/\x80S')
+    data.append('{"station": "011990-99999", "time": 1433269388, "temp": 0}')
 
-        if type(schema) is avro.schema.RecordSchema:
-            self.schema = schema
-            return True, 'OK'
-
-        return False, 'NO SCHEMA'
+    for dt in data:
+        ao = AvroObject(dt, schema)
+        print()
+        print(ao)
+        pprint(ao.to_avro())
+        pprint(ao.to_json())

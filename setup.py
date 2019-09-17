@@ -19,8 +19,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'avro',
-        'avro-json-serializer',
+        'fastavro',
         'requests'
     ],
     python_requires='>=3.6',

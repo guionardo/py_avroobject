@@ -1,5 +1,4 @@
-from .avro_object import AvroObject
-from .avro_schema import create_schema
-from .avro_tools import fetch_json, is_avro_binary, add_fetch_method
+from .avro_object import (AvroObject, add_fetch_method, create_schema,
+                          fetch_json, reset_fetch_methods)
 
 name = 'avro_object'
