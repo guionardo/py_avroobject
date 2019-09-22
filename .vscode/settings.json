@@ -1,0 +1,13 @@
+{
+    "python.pythonPath": "/home/guionardo/.local/share/virtualenvs/py_avroobject-AmCfl5Hk/bin/python",
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.unittestEnabled": true
+}
