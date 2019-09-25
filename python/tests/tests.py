@@ -1,7 +1,7 @@
 import unittest
 from pprint import pprint
 
-from avro_object import AvroObject, add_fetch_method, create_schema, reset_fetch_methods
+from avro_object import AvroObject, AvroTools
 
 
 class AvroObjectTests(unittest.TestCase):
@@ -43,11 +43,11 @@ class AvroObjectTests(unittest.TestCase):
         def f_not_ok2() -> tuple:
             return False, "Invalid function 2"
 
-        self.assertTrue(add_fetch_method(f_ok))
-        self.assertFalse(add_fetch_method(f_not_ok1))
-        self.assertFalse(add_fetch_method(f_not_ok2))
+        self.assertTrue(AvroTools.add_fetch_method(f_ok))
+        self.assertFalse(AvroTools.add_fetch_method(f_not_ok1))
+        self.assertFalse(AvroTools.add_fetch_method(f_not_ok2))
 
-        reset_fetch_methods()
+        AvroTools.reset_fetch_methods()
 
     def test_schema(self):
 
@@ -57,7 +57,7 @@ class AvroObjectTests(unittest.TestCase):
             'ativo': True
         }
 
-        s = create_schema(o, 'schema_teste')
+        s = AvroTools.create_schema(o, 'schema_teste')
         pprint(s)
         pprint(o)
         self.assertTrue(True, 'ok')

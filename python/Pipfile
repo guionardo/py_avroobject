@@ -4,10 +4,18 @@ url = "https://pypi.org/simple"
 verify_ssl = false
 
 [dev-packages]
-#setuptools = "*"
-#wheel = "*"
-#twine = "*"
+setuptools = "*"
+wheel = "*"
+twine = "*"
+pylint = "*"
+autopep8 = "*"
+rope = "*"
+sphinx = "*"
+rinohtype = "*"
+sphinx-markdown-builder = "*"
 
 [packages]
 requests = "*"
 fastavro = "*"
+sphinx-markdown-builder = "*"
+sphinx-markdown-parser = "*"

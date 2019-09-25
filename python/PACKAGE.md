@@ -21,5 +21,5 @@ twine upload --repository-url https://pypi.org/legacy/ dist/*
 ## Install from tests
 
 ```
-pip install -i https://test.pypi.org/simple/ avro-object-pkg-guionardo==0.0.1
+pip install -i https://test.pypi.org/simple/ avro-object-pkg-guionardo==0.0.3
 ```
