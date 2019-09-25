@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="avro-object-furlan",
-    version="0.0.3",
+    version="0.0.4",
     author="Guionardo Furlan",
     author_email="guionardo@gmail.com",
     description="Helper class for (de)serialization of objects using Apache Avro",
@@ -17,6 +17,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
     ],
     install_requires=[
         'fastavro',
