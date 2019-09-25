@@ -1,0 +1,14 @@
+{
+    "id": 1,
+    "name": "Guionardo",
+    "birthdate": "1977-02-05",
+    "today": "2019-09-24 21:16:48.671843",
+    "now": "23:20:22",
+    "loved_languages": [
+        "Python",
+        "C#"
+    ],
+    "good_guy": true,
+    "weight_kg": 71.6,
+    "height_m": 1.72
+}

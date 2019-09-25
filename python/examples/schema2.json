@@ -1,0 +1,16 @@
+{
+    "doc": "Test schema",
+    "name": "test_schema",
+    "namespace": "test",
+    "type": "record",
+    "fields": [
+        {
+            "name": "id",
+            "type": "int"
+        },
+        {
+            "name": "name",
+            "type": "string"
+        }
+    ]
+}
