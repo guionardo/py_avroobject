@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="avro-object-pkg-guionardo",
+    name="avro-object-furlan",
     version="0.0.3",
     author="Guionardo Furlan",
     author_email="guionardo@gmail.com",
