@@ -4,6 +4,8 @@ You can adapt this file completely to your liking, but it should at least
 contain the root `toctree` directive. -->
 # AvroObject’s documentation!
 
+[![Coverage Status](https://coveralls.io/repos/github/guionardo/py_avroobject/badge.svg?branch=master)](https://coveralls.io/github/guionardo/py_avroobject?branch=master)
+
 ## Links
 
 
