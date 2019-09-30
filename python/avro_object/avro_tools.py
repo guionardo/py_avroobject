@@ -6,7 +6,7 @@ import re
 from inspect import signature
 
 import requests
-
+from fastavro import parse_schema
 
 class AvroTools:
     """
@@ -111,6 +111,27 @@ class AvroTools:
             if isinstance(o, t):
                 return o.__str__()
         return None
+
+    @staticmethod
+    def isAvroBinary(bin_data: bytes) -> bool:
+        """
+        Verify if a bytes sequence has a Avro header        
+        """
+        return isinstance(bin_data, bytes) and (len(bin_data) > 15) and (bin_data[:16] == b'Obj\x01\x04\x14avro.codec')
+
+    @staticmethod
+    def validateSchema(schema) -> bool:
+        """
+        Validate schema
+
+        :param schema: schema to validate
+        :return: True if valid schema
+        """
+        try:
+            sch = parse_schema(schema)
+            return True
+        except:
+            return False
 
     @staticmethod
     def create_schema(data: dict, name: str, namespace: str = 'namespace.test', doc: str = None):

@@ -62,6 +62,11 @@ class AvroObjectTests(unittest.TestCase):
         pprint(o)
         self.assertTrue(True, 'ok')
 
+    def test_validateSchema(self):
+        self.assertTrue(AvroTools.validateSchema(self.schema))
+        badSchema = {'anydata':False}
+        self.assertFalse(AvroTools.validateSchema(badSchema))
+
     def test_serialize_str(self):
         ao = AvroObject(self.obj_ok, self.schema)
         serial_json = ao.to_json()
