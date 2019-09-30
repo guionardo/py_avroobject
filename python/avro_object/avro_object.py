@@ -52,9 +52,14 @@ class AvroObject:
                 schema = None
 
         if schema is not None:
-            self._schema = parse_schema(schema)
-            if self._schema_origin is None:
-                self._schema_origin = type(schema).__name__
+            try:
+                self._schema = parse_schema(schema)
+                if self._schema_origin is None:
+                    self._schema_origin = type(schema).__name__
+            except Exception as e:
+                self._last_error = str(e)
+                schema = None
+                
 
         if isinstance(data, bytes):
             b_avro = False

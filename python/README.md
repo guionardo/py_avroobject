@@ -8,23 +8,14 @@ contain the root `toctree` directive. -->
 
 
 * [GitHub AvroObject](https://github.com/guionardo/py_avroobject)
-
-
 * [PyPi avro-object-furlan](https://pypi.org/project/avro-object-furlan/)
 
 ## Examples
 
-
-* [Basic Serialization](https://github.com/guionardo/py_avroobject/python/ex_basic_serialization.py)
-
-
-* [Schema Serialization](https://github.com/guionardo/py_avroobject/python/ex_schema_serialization.py)
-
-
-* [Basic Deserialization](https://github.com/guionardo/py_avroobject/python/ex_basic_deserialization.py)
-
-
-* [Schema Deserialization](https://github.com/guionardo/py_avroobject/python/ex_schema_deserialization.py)
+* [Basic Serialization](ex_basic_serialization.md)
+* [Schema Serialization](ex_schema_serialization.md)
+* [Basic Deserialization](ex_basic_deserialization.md)
+* [Schema Deserialization](ex_schema_deserialization.md)
 
 # AvroObject
 
