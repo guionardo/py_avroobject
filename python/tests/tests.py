@@ -1,5 +1,6 @@
 import unittest
 from pprint import pprint
+import os
 
 from avro_object import AvroObject, AvroTools
 
@@ -62,9 +63,30 @@ class AvroObjectTests(unittest.TestCase):
         pprint(o)
         self.assertTrue(True, 'ok')
 
+    def test_objet_of_schema(self):
+        ao = AvroObject(self.obj_ok, self.schema)
+        self.assertTrue(ao.ok)
+
+    def test_invalid_object_of_schema(self):
+        ao = AvroObject(self.obj_err, self.schema)
+        self.assertFalse(ao.ok)
+
+    def test_loaded_object_schema(self):
+        file_object = os.path.realpath('./examples/delivery.json')
+        file_schema = os.path.realpath('./examples/delivery.avsc')
+
+        ao = AvroObject(file_object, file_schema)
+        self.assertTrue(ao.ok, ao.last_error)
+
+    def test_loaded_bad_object_good_schema(self):
+        file_object = os.path.realpath('./examples/delivery_bad.json')
+        file_schema = os.path.realpath('./examples/delivery.avsc')
+        ao = AvroObject(file_object, file_schema)
+        self.assertFalse(ao.ok, ao.last_error)
+
     def test_validateSchema(self):
         self.assertTrue(AvroTools.validateSchema(self.schema))
-        badSchema = {'anydata':False}
+        badSchema = {'anydata': False}
         self.assertFalse(AvroTools.validateSchema(badSchema))
 
     def test_serialize_str(self):

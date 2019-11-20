@@ -20,6 +20,8 @@ class AvroObject:
     :type data: JSON as string, Dict object, Filename/URL as string with JSON content, Avro as bytes with binary serialized content
     :type schema: JSON as string, Dict object, Filename/URL as string with JSON content
 
+    Schema creation tool: https://toolslick.com/generation/metadata/avro-schema-from-json
+
     """
 
     def __init__(self, data, schema=None):

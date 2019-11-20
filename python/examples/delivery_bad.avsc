@@ -1,0 +1,79 @@
+{
+    "type": "record",
+    "name": "Delivery",
+    "namespace": "hbsis.cxc",
+    "fields": [
+        {
+            "name": "business_unity",
+            "type": "string"
+        },
+        {
+            "name": "map_number",
+            "type": "int"
+        },
+        {
+            "name": "delivery_date",
+            "type": "string"
+        },
+        {
+            "name": "client_number",
+            "type": "int"
+        },
+        {
+            "name": "taxvat",
+            "type": "string"
+        },
+        {
+            "name": "order_number",
+            "type": "int"
+        },
+        {
+            "name": "order_date",
+            "type": "string"
+        },
+        {
+            "name": "order_status",
+            "type": "string"
+        },
+        {
+            "name": "buffer_situation",
+            "type": "string"
+        },
+        {
+            "name": "invoice_number",
+            "type": "string"
+        },
+        {
+            "name": "invoice_status_update_date",
+            "type": "string"
+        },
+        {
+            "name": "invoice_status",
+            "type": "string"
+        },
+        {
+            "name": "invoice_itens",
+            "type": {
+                "type": "array",
+                "itens": {
+                    "name": "invoice_item",
+                    "type": "record",
+                    "fields": [
+                        {
+                            "name": "product_number",
+                            "type": "int"
+                        },
+                        {
+                            "name": "item_description",
+                            "type": "string"
+                        },
+                        {
+                            "name": "item_count",
+                            "type": "int"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/guionardo/.local/share/virtualenvs/py_avroobject-AmCfl5Hk/bin/python",
+    "python.pythonPath": "C:\\Users\\guionardo.furlan\\.virtualenvs\\py_avroobject-8PyWCVN4\\Scripts\\python.exe",
     "python.testing.unittestArgs": [
         "-v",
         "-s",

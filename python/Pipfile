@@ -13,6 +13,7 @@ rope = "*"
 sphinx = "*"
 rinohtype = "*"
 sphinx-markdown-builder = "*"
+python-coveralls = "*"
 
 [packages]
 requests = "*"

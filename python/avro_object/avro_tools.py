@@ -6,7 +6,7 @@ import re
 from inspect import signature
 
 import requests
-from fastavro import parse_schema
+from fastavro import parse_schema, is_avro
 
 class AvroTools:
     """

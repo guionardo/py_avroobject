@@ -1,0 +1,31 @@
+{
+    "business_unity_error": "123",
+    "map_number": 4,
+    "delivery_date": "2019-09-18 08:02:22",
+    "client_number": 53,
+    "taxvat": "",
+    "order_number": "222",
+    "order_date": "2019-09-17 08:02:22",
+    "order_status": "A",
+    "buffer_situation": "?",
+    "invoice_number": "48405",
+    "invoice_status_update_date": "2019-09-18 09:02:22",
+    "invoice_status": "A",
+    "invoice_itens": [
+        {
+            "product_number": 1,
+            "item_description": "Cerveja",
+            "item_count": 2
+        },
+        {
+            "product_number": 2,
+            "item_description": "Refri",
+            "item_count": 6
+        },
+        {
+            "product_number": 3,
+            "item_description": "Amendoim",
+            "item_count": 9
+        }
+    ]
+}
