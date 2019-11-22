@@ -18,6 +18,18 @@ class AvroObjectTests(unittest.TestCase):
                 {'name': 'Active', 'type': 'boolean', 'default': 'False'}
             ]
         }
+
+        self.bad_schema = {
+            'namespace': 'avroobject.test',
+            'type': 'record',
+            'name': 'User_error',
+            'fields': [
+                {'name_fi': 'UserName', 'type': 'string'},
+                {'name': 'Age', 'type': ['int', 'null'], 'default':'1'},
+                {'name': 'Active', 'type': 'boolean', 'default': 'False'}
+            ]
+        }
+
         self.obj_ok = {'UserName': 'Guionardo',
                        'Age': 42,
                        'Active': True}
@@ -66,6 +78,14 @@ class AvroObjectTests(unittest.TestCase):
     def test_objet_of_schema(self):
         ao = AvroObject(self.obj_ok, self.schema)
         self.assertTrue(ao.ok)
+
+    def test_invalid_schema(self):
+        test_case = AvroTools.validateSchema(self.bad_schema)
+        self.assertFalse(test_case, "Invalid schema (A): " +
+                         AvroTools.get_last_error())
+        test_case = AvroTools.validateSchema(self.schema)
+        self.assertTrue(test_case, "Invalid schema (B): " +
+                        AvroTools.get_last_error())
 
     def test_invalid_object_of_schema(self):
         ao = AvroObject(self.obj_err, self.schema)

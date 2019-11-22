@@ -4,7 +4,7 @@ from .avro_object import AvroObject
 from .avro_tools import AvroTools
 
 name = 'avro_object'
-version = '0.0.6'
+version = '0.9.1'
 description = 'Helper class for (de)serialization of objects using Apache Avro'
 author = 'Guionardo Furlan'
 author_email = 'guionardo@gmail.com'

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="avro-object-furlan",
-    version='0.0.6',
+    version='0.9.1',
     author='Guionardo Furlan',
     author_email='guionardo@gmail.com',
     description='Helper class for (de)serialization of objects using Apache Avro',

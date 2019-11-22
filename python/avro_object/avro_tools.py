@@ -13,6 +13,11 @@ class AvroTools:
     Tools for AvroObject
     """
     _json_fetch_modes = []
+    _last_error = None
+
+    @classmethod
+    def get_last_error(cls)->str:
+        return str(cls._last_error)
 
     @classmethod
     def fetch_json(cls, source: str) -> tuple:
@@ -119,8 +124,8 @@ class AvroTools:
         """
         return isinstance(bin_data, bytes) and (len(bin_data) > 15) and (bin_data[:16] == b'Obj\x01\x04\x14avro.codec')
 
-    @staticmethod
-    def validateSchema(schema) -> bool:
+    @classmethod
+    def validateSchema(cls,schema) -> bool:
         """
         Validate schema
 
@@ -129,8 +134,10 @@ class AvroTools:
         """
         try:
             sch = parse_schema(schema)
+            cls._last_error=None
             return True
-        except:
+        except Exception as e:
+            cls._last_error=str(e)
             return False
 
     @staticmethod
